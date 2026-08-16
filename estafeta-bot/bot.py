@@ -1,4 +1,4 @@
-import os; os.system('pip install vk_api')
+import os.system('pip install vk_api'
 import os
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
@@ -7,20 +7,25 @@ import time
 from datetime import datetime
 import json
 
-print("СТАРТ 1: Бот начал загружаться...")
+# --- ПЕРВАЯ СТРОКА ДЛЯ ПОДСТРАХОВКИ (можно удалить после первого запуска) ---
+os.system('pip install vk_api')
 
-GROUP_TOKEN = "vk1.a.tLPrx7XL95lpFV12NeHF3QuGuO9I80EWVg4-6qk8rQhzyFgPBsnR8unknHnPW6_1imhma3KcmL4sKFiYRQ9UaDs_qsziZbsP1dYS9UBlphjyQmaVL5TCOdS-q8-UR2M-4ToDEWyNUSIrAbAjq1Ee4ZLp0KslSpmTBitKrF8JaZnPFksCVy0KYHJENpTpc_hJ4Hg5BYw-ErSxNE1pzn0H4A"
+print("🚀 Бот запускается...")
+
+# ============================================
+#  НАСТРОЙКИ
+# ============================================
+GROUP_TOKEN = "vk1.a.7VEgieZpdVqUHjSeQUqMDq_wFWWChk8AFkfg_zXNj2LOLBcdMD4oXKq-x2xZHkynyxye8N2MElbbwwZHxMt8ncxgU6wEvPyyR2hBqE4KvPEx_2ephg7_Xta649zJa0KKL2vO59WhS39iX4gOKQ2waTlOHR7ZQuUPZ0gshCIVTsWKtFLgfR9s3xQArH7xT0HZf0yogO3J2uJ0CDcEpsyMCw"
 GROUP_ID = 240887444
-
-print("СТАРТ 2: Токен и ID загружены.")
-print(f"Токен (первые 10 символов): {GROUP_TOKEN[:10]}...")
-print(f"ID группы: {GROUP_ID}")
 
 ADMINS = [479753606]
 TIME_TO_ACCEPT = 60
 TIME_TO_IDLE = 120
 DATA_FILE = "estafeta_data.json"
 
+# ============================================
+#  ХРАНИЛИЩЕ
+# ============================================
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
@@ -36,20 +41,24 @@ def save_data(data):
 
 chats = load_data()
 
-print("СТАРТ 3: Данные загружены. Пытаюсь подключиться к VK...")
-
+# ============================================
+#  VK (ПОДКЛЮЧЕНИЕ)
+# ============================================
 try:
-    vk_session = vk_api.VkApi(token=GROUP_TOKEN)
-    print("СТАРТ 4: VkApi создан.")
+    vk_session = vk_api.VkApi(token=GROUP_TOKEN, api_version='5.199')
     vk = vk_session.get_api()
-    print("СТАРТ 5: API получен.")
     longpoll = VkBotLongPoll(vk_session, GROUP_ID)
-    print("СТАРТ 6: LongPoll запущен.")
+    print("✅ Подключение к VK успешно! Бот готов.")
+except vk_api.exceptions.ApiError as e:
+    print(f"❌ Ошибка токена/прав ВК: {e}")
+    exit()
 except Exception as e:
-    print("КРИТИЧЕСКАЯ ОШИБКА ПРИ ПОДКЛЮЧЕНИИ К ВК:")
-    print(str(e))
+    print(f"❌ Ошибка подключения: {e}")
     exit()
 
+# ============================================
+#  ФУНКЦИИ
+# ============================================
 def send(chat_id, text):
     try:
         vk.messages.send(peer_id=chat_id, message=text, random_id=0)
@@ -151,6 +160,9 @@ def show_penalties(chat_id):
 def is_admin(user_id):
     return user_id in ADMINS
 
+# ============================================
+#  ТАЙМЕР
+# ============================================
 def timer_check():
     while True:
         time.sleep(30)
@@ -185,11 +197,10 @@ def timer_check():
 thread = threading.Thread(target=timer_check, daemon=True)
 thread.start()
 
-print("СТАРТ 7: Бот готов к работе!")
+# ============================================
+#  ОСНОВНОЙ ЦИКЛ
+# ============================================
 print("🤖 БОТ ЭСТАФЕТА ЗАПУЩЕН!")
-print(f"📱 Админ: {ADMINS[0]}")
-print(f"⏰ Время на принятие: {TIME_TO_ACCEPT} минут")
-print(f"⏰ Время бездействия: {TIME_TO_IDLE} минут")
 print("⏳ Ожидание сообщений...")
 
 while True:
