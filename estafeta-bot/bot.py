@@ -1,10 +1,23 @@
-import vk_api
+import subprocess
+import sys
+import os
+
+# === АВТОМАТИЧЕСКАЯ УСТАНОВКА БИБЛИОТЕК ===
+def install_package(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package, "--quiet"])
+
+try:
+    import vk_api
+except ImportError:
+    print("⚠️ Устанавливаю vk-api...")
+    install_package("vk-api")
+    import vk_api
+
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 import threading
 import time
 from datetime import datetime
 import json
-import os
 
 # ============================================
 #  НАСТРОЙКИ (ТВОИ ДАННЫЕ)
@@ -60,7 +73,7 @@ def send_mention_all(chat_id, text):
         mentions = []
         for item in members['items']:
             uid = item['member_id']
-            if uid > 0:  # Только пользователи
+            if uid > 0:
                 mentions.append(f"[id{uid}|]")
         message = " ".join(mentions) + "\n" + text
         vk.messages.send(peer_id=chat_id, message=message, random_id=0)
@@ -78,12 +91,12 @@ def get_user_name(user_id):
 def init_chat(chat_id):
     if str(chat_id) not in chats:
         chats[str(chat_id)] = {
-            'holder': None,           # ID текущего владельца
-            'time': None,             # Время последней передачи
-            'penalty': {},            # Штрафы
-            'pending': None,          # ID того, кому передали (ожидание)
-            'pending_time': None,     # Время ожидания
-            'last_activity': None     # Время последней активности
+            'holder': None,
+            'time': None,
+            'penalty': {},
+            'pending': None,
+            'pending_time': None,
+            'last_activity': None
         }
         save_data(chats)
 
@@ -187,7 +200,6 @@ def timer_check():
                 try:
                     last_time = datetime.fromisoformat(data['last_activity'])
                     if (now - last_time).total_seconds() >= (TIME_TO_IDLE * 60):
-                        # Сбрасываем всё
                         data['holder'] = None
                         data['time'] = None
                         data['pending'] = None
@@ -231,13 +243,11 @@ while True:
                 
                 # --- !принять ---
                 if text == "!принять":
-                    # Если есть ожидание и это тот, кому передали
                     if chats[chat_key]['pending'] == user_id:
                         set_holder(chat_id, user_id)
                         send(chat_id, f"✅ {get_user_name(user_id)} ПРИНЯЛ ЭСТАФЕТУ!\n"
                                       f"📝 Команды: !передать @Имя, !уступить, !штрафы")
                     else:
-                        # Если эстафета свободна
                         if get_holder(chat_id) is None and chats[chat_key]['pending'] is None:
                             set_holder(chat_id, user_id)
                             send(chat_id, f"✅ {get_user_name(user_id)} ВЗЯЛ ЭСТАФЕТУ!")
@@ -250,12 +260,10 @@ while True:
                 
                 # --- !передать @Имя ---
                 elif text.startswith("!передать ") or text.startswith("!передаю "):
-                    # Проверяем, что эстафета у этого пользователя
                     if get_holder(chat_id) != user_id:
                         send(chat_id, "❌ Эстафета не у вас!")
                         continue
                     
-                    # Проверяем, нет ли уже ожидания
                     if chats[chat_key]['pending'] is not None:
                         send(chat_id, "❌ Вы уже передали эстафету кому-то! Дождитесь ответа")
                         continue
@@ -272,7 +280,7 @@ while True:
                         found = None
                         for item in members['items']:
                             uid = item['member_id']
-                            if uid > 0 and uid != user_id:  # Не себе
+                            if uid > 0 and uid != user_id:
                                 user = vk.users.get(user_ids=uid)[0]
                                 full_name = f"{user['first_name']} {user['last_name']}".lower()
                                 if target_name.lower() in full_name or target_name in str(uid):
@@ -280,11 +288,9 @@ while True:
                                     break
                         
                         if found:
-                            # Устанавливаем ожидание
                             set_pending(chat_id, user_id, found)
                             send(chat_id, f"📤 {get_user_name(user_id)} ПЕРЕДАЁТ ЭСТАФЕТУ {get_user_name(found)}!\n"
                                           f"⏰ У {get_user_name(found)} есть {TIME_TO_ACCEPT} минут, чтобы написать !принять")
-                            # Личное сообщение тому, кому передали
                             try:
                                 vk.messages.send(
                                     user_id=found,
@@ -389,7 +395,6 @@ while True:
                 
                 # --- Любое сообщение обновляет активность ---
                 else:
-                    # Обновляем активность при любом сообщении
                     if chat_key in chats:
                         chats[chat_key]['last_activity'] = datetime.now().isoformat()
                         save_data(chats)
