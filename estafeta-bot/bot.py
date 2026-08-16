@@ -1,32 +1,23 @@
-import os; os.system('pip install vk_api')
+import os
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 import threading
 import time
 from datetime import datetime
 import json
-import os
 
-# ============================================
-#  НАСТРОЙКИ (БЕРЁМ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ BOTHOST)
-# ============================================
+print("СТАРТ 1: Бот начал загружаться...")
+
 GROUP_TOKEN = "vk1.a.tLPrx7XL95lpFV12NeHF3QuGuO9I80EWVg4-6qk8rQhzyFgPBsnR8unknHnPW6_1imhma3KcmL4sKFiYRQ9UaDs_qsziZbsP1dYS9UBlphjyQmaVL5TCOdS-q8-UR2M-4ToDEWyNUSIrAbAjq1Ee4ZLp0KslSpmTBitKrF8JaZnPFksCVy0KYHJENpTpc_hJ4Hg5BYw-ErSxNE1pzn0H4A"
-GROUP_ID = "240887444"
+GROUP_ID = 240887444
 
-if not GROUP_TOKEN:
-    print("ОШИБКА: Не найден токен API_TOKEN в переменных окружения!")
-    print("Проверьте настройки бота -> вкладка Переменные")
-    exit()
+print("СТАРТ 2: Токен и ID загружены.")
+print(f"Токен (первые 10 символов): {GROUP_TOKEN[:10]}...")
+print(f"ID группы: {GROUP_ID}")
 
-ADMINS = [479753606]  # Твой ID (можешь добавить другие через запятую)
-
-# Время в минутах
-TIME_TO_ACCEPT = 60  # Время на принятие эстафеты
-TIME_TO_IDLE = 120   # Время бездействия (2 часа)
-
-# ============================================
-#  ХРАНИЛИЩЕ
-# ============================================
+ADMINS = [479753606]
+TIME_TO_ACCEPT = 60
+TIME_TO_IDLE = 120
 DATA_FILE = "estafeta_data.json"
 
 def load_data():
@@ -44,16 +35,20 @@ def save_data(data):
 
 chats = load_data()
 
-# ============================================
-#  VK
-# ============================================
-vk_session = vk_api.VkApi(token=GROUP_TOKEN)
-vk = vk_session.get_api()
-longpoll = VkBotLongPoll(vk_session, GROUP_ID)
+print("СТАРТ 3: Данные загружены. Пытаюсь подключиться к VK...")
 
-# ============================================
-#  ФУНКЦИИ
-# ============================================
+try:
+    vk_session = vk_api.VkApi(token=GROUP_TOKEN)
+    print("СТАРТ 4: VkApi создан.")
+    vk = vk_session.get_api()
+    print("СТАРТ 5: API получен.")
+    longpoll = VkBotLongPoll(vk_session, GROUP_ID)
+    print("СТАРТ 6: LongPoll запущен.")
+except Exception as e:
+    print("КРИТИЧЕСКАЯ ОШИБКА ПРИ ПОДКЛЮЧЕНИИ К ВК:")
+    print(str(e))
+    exit()
+
 def send(chat_id, text):
     try:
         vk.messages.send(peer_id=chat_id, message=text, random_id=0)
@@ -61,7 +56,6 @@ def send(chat_id, text):
         print(f"Ошибка отправки: {e}")
 
 def send_mention_all(chat_id, text):
-    """Отправляет сообщение с упоминанием всех участников"""
     try:
         members = vk.messages.getConversationMembers(peer_id=chat_id)
         mentions = []
@@ -85,12 +79,7 @@ def get_user_name(user_id):
 def init_chat(chat_id):
     if str(chat_id) not in chats:
         chats[str(chat_id)] = {
-            'holder': None,           # ID текущего владельца
-            'time': None,             # Время последней передачи
-            'penalty': {},            # Штрафы
-            'pending': None,          # ID того, кому передали (ожидание)
-            'pending_time': None,     # Время ожидания
-            'last_activity': None     # Время последней активности
+            'holder': None, 'time': None, 'penalty': {}, 'pending': None, 'pending_time': None, 'last_activity': None
         }
         save_data(chats)
 
@@ -161,35 +150,23 @@ def show_penalties(chat_id):
 def is_admin(user_id):
     return user_id in ADMINS
 
-# ============================================
-#  ТАЙМЕР
-# ============================================
 def timer_check():
     while True:
         time.sleep(30)
         now = datetime.now()
         now_timestamp = now.timestamp()
-        
         for chat_id_str, data in list(chats.items()):
             chat_id = int(chat_id_str)
-            
-            # === 1. Проверка: не принял эстафету за 1 час ===
             if data['pending'] and data['pending_time']:
                 if now_timestamp - data['pending_time'] >= (TIME_TO_ACCEPT * 60):
                     user_id = data['pending']
                     add_penalty(chat_id, user_id)
                     penalty = get_penalty(chat_id, user_id)
-                    
                     data['pending'] = None
                     data['pending_time'] = None
                     data['last_activity'] = now.isoformat()
                     save_data(chats)
-                    
-                    send(chat_id, f"⚠️ {get_user_name(user_id)} НЕ ПРИНЯЛ ЭСТАФЕТУ!\n"
-                                  f"📊 Штраф +1 (всего: {penalty})\n"
-                                  f"🏃 Эстафета свободна! Напишите !принять")
-            
-            # === 2. Проверка: 2 часа бездействия ===
+                    send(chat_id, f"⚠️ {get_user_name(user_id)} НЕ ПРИНЯЛ ЭСТАФЕТУ!\n📊 Штраф +1 (всего: {penalty})\n🏃 Эстафета свободна! Напишите !принять")
             if data['last_activity']:
                 try:
                     last_time = datetime.fromisoformat(data['last_activity'])
@@ -200,18 +177,14 @@ def timer_check():
                         data['pending_time'] = None
                         data['last_activity'] = now.isoformat()
                         save_data(chats)
-                        
-                        send_mention_all(chat_id, "⏰ Эстафета не бралась 2 часа, возьмите чтобы избежать наказаний!\n"
-                                                   "Напишите !принять")
+                        send_mention_all(chat_id, "⏰ Эстафета не бралась 2 часа, возьмите чтобы избежать наказаний!\nНапишите !принять")
                 except:
                     pass
 
 thread = threading.Thread(target=timer_check, daemon=True)
 thread.start()
 
-# ============================================
-#  ОСНОВНОЙ ЦИКЛ
-# ============================================
+print("СТАРТ 7: Бот готов к работе!")
 print("🤖 БОТ ЭСТАФЕТА ЗАПУЩЕН!")
 print(f"📱 Админ: {ADMINS[0]}")
 print(f"⏰ Время на принятие: {TIME_TO_ACCEPT} минут")
@@ -226,20 +199,14 @@ while True:
                 chat_id = msg.peer_id
                 user_id = msg.from_id
                 text = msg.text.lower().strip()
-                
                 if user_id < 0:
                     continue
-                
                 init_chat(chat_id)
                 chat_key = str(chat_id)
-                
-                # === КОМАНДЫ ===
-                
                 if text == "!принять":
                     if chats[chat_key]['pending'] == user_id:
                         set_holder(chat_id, user_id)
-                        send(chat_id, f"✅ {get_user_name(user_id)} ПРИНЯЛ ЭСТАФЕТУ!\n"
-                                      f"📝 Команды: !передать @Имя, !уступить, !штрафы")
+                        send(chat_id, f"✅ {get_user_name(user_id)} ПРИНЯЛ ЭСТАФЕТУ!\n📝 Команды: !передать @Имя, !уступить, !штрафы")
                     else:
                         if get_holder(chat_id) is None and chats[chat_key]['pending'] is None:
                             set_holder(chat_id, user_id)
@@ -250,23 +217,18 @@ while True:
                                 send(chat_id, f"❌ Эстафета уже у {get_user_name(holder)}")
                             else:
                                 send(chat_id, "❌ Эстафета уже кому-то передана! Дождитесь, когда её примут")
-                
                 elif text.startswith("!передать ") or text.startswith("!передаю "):
                     if get_holder(chat_id) != user_id:
                         send(chat_id, "❌ Эстафета не у вас!")
                         continue
-                    
                     if chats[chat_key]['pending'] is not None:
                         send(chat_id, "❌ Вы уже передали эстафету кому-то! Дождитесь ответа")
                         continue
-                    
                     parts = text.split(maxsplit=1)
                     if len(parts) < 2:
                         send(chat_id, "❌ Напишите: !передать @Имя")
                         continue
-                    
                     target_name = parts[1].strip()
-                    
                     try:
                         members = vk.messages.getConversationMembers(peer_id=chat_id)
                         found = None
@@ -278,17 +240,13 @@ while True:
                                 if target_name.lower() in full_name or target_name in str(uid):
                                     found = uid
                                     break
-                        
                         if found:
                             set_pending(chat_id, user_id, found)
-                            send(chat_id, f"📤 {get_user_name(user_id)} ПЕРЕДАЁТ ЭСТАФЕТУ {get_user_name(found)}!\n"
-                                          f"⏰ У {get_user_name(found)} есть {TIME_TO_ACCEPT} минут, чтобы написать !принять")
+                            send(chat_id, f"📤 {get_user_name(user_id)} ПЕРЕДАЁТ ЭСТАФЕТУ {get_user_name(found)}!\n⏰ У {get_user_name(found)} есть {TIME_TO_ACCEPT} минут, чтобы написать !принять")
                             try:
                                 vk.messages.send(
                                     user_id=found,
-                                    message=f"🏃 Вам передают эстафету в беседе!\n"
-                                            f"Напишите !принять в чате, чтобы взять её.\n"
-                                            f"⏰ У вас есть {TIME_TO_ACCEPT} минут, иначе штраф!"
+                                    message=f"🏃 Вам передают эстафету в беседе!\nНапишите !принять в чате, чтобы взять её.\n⏰ У вас есть {TIME_TO_ACCEPT} минут, иначе штраф!"
                                 )
                             except:
                                 pass
@@ -296,41 +254,30 @@ while True:
                             send(chat_id, "❌ Участник не найден")
                     except Exception as e:
                         send(chat_id, f"❌ Ошибка: {str(e)}")
-                
                 elif text == "!уступить":
                     if get_holder(chat_id) != user_id:
                         send(chat_id, "❌ Эстафета не у вас!")
                         continue
-                    
                     add_penalty(chat_id, user_id)
                     penalty = get_penalty(chat_id, user_id)
-                    
                     chats[chat_key]['holder'] = None
                     chats[chat_key]['time'] = None
                     chats[chat_key]['pending'] = None
                     chats[chat_key]['pending_time'] = None
                     chats[chat_key]['last_activity'] = datetime.now().isoformat()
                     save_data(chats)
-                    
-                    send(chat_id, f"⚠️ {get_user_name(user_id)} УСТУПИЛ ЭСТАФЕТУ!\n"
-                                  f"📊 Штраф +1 (всего: {penalty})\n"
-                                  f"🏃 Эстафета свободна! Напишите !принять")
-                
+                    send(chat_id, f"⚠️ {get_user_name(user_id)} УСТУПИЛ ЭСТАФЕТУ!\n📊 Штраф +1 (всего: {penalty})\n🏃 Эстафета свободна! Напишите !принять")
                 elif text == "!штрафы":
                     send(chat_id, show_penalties(chat_id))
-                
                 elif text == "!статус":
                     holder = get_holder(chat_id)
                     pending = get_pending(chat_id)
-                    
                     if holder:
                         send(chat_id, f"🏃 Эстафета у {get_user_name(holder)}")
                     elif pending:
-                        send(chat_id, f"⏳ Эстафета передана {get_user_name(pending)}\n"
-                                      f"⏰ Ожидает принятия...")
+                        send(chat_id, f"⏳ Эстафета передана {get_user_name(pending)}\n⏰ Ожидает принятия...")
                     else:
                         send(chat_id, "🏃 Эстафета свободна! Напишите !принять")
-                
                 elif text == "!помощь":
                     help_text = f"""📖 ДОСТУПНЫЕ КОМАНДЫ:
 
@@ -350,7 +297,6 @@ while True:
 - Игнорирование = штраф +1
 - Если 2 часа бездействия - сообщение @all"""
                     send(chat_id, help_text)
-                
                 elif text.startswith("!очистить_штрафы"):
                     if not is_admin(user_id):
                         send(chat_id, "❌ Только админ может очищать штрафы!")
@@ -379,12 +325,10 @@ while True:
                                 send(chat_id, "❌ Участник не найден")
                         except Exception as e:
                             send(chat_id, f"❌ Ошибка: {str(e)}")
-                
                 else:
                     if chat_key in chats:
                         chats[chat_key]['last_activity'] = datetime.now().isoformat()
                         save_data(chats)
-    
     except Exception as e:
         print(f"Ошибка: {e}")
         time.sleep(10)
