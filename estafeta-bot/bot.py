@@ -1,4 +1,4 @@
-import os.system('pip install vk_api'
+import os.system('pip install vk_api')
 import os
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
