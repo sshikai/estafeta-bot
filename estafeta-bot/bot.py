@@ -14,8 +14,8 @@ GROUP_ID = 240887444
 ADMINS = [479753606]
 
 # Время в минутах
-TIME_TO_ACCEPT = 60  # Время на принятие эстафеты
-TIME_TO_IDLE = 120   # Время бездействия (2 часа)
+TIME_TO_ACCEPT = 60
+TIME_TO_IDLE = 120
 
 # ============================================
 #  ХРАНИЛИЩЕ
@@ -54,7 +54,6 @@ def send(chat_id, text):
         print(f"Ошибка отправки: {e}")
 
 def send_mention_all(chat_id, text):
-    """Отправляет сообщение с упоминанием всех участников"""
     try:
         members = vk.messages.getConversationMembers(peer_id=chat_id)
         mentions = []
@@ -166,7 +165,6 @@ def timer_check():
         for chat_id_str, data in list(chats.items()):
             chat_id = int(chat_id_str)
             
-            # === 1. Проверка: не принял эстафету за 1 час ===
             if data['pending'] and data['pending_time']:
                 if now_timestamp - data['pending_time'] >= (TIME_TO_ACCEPT * 60):
                     user_id = data['pending']
@@ -182,7 +180,6 @@ def timer_check():
                                   f"📊 Штраф +1 (всего: {penalty})\n"
                                   f"🏃 Эстафета свободна! Напишите !принять")
             
-            # === 2. Проверка: 2 часа бездействия ===
             if data['last_activity']:
                 try:
                     last_time = datetime.fromisoformat(data['last_activity'])
@@ -226,9 +223,6 @@ while True:
                 init_chat(chat_id)
                 chat_key = str(chat_id)
                 
-                # === КОМАНДЫ ===
-                
-                # --- !принять ---
                 if text == "!принять":
                     if chats[chat_key]['pending'] == user_id:
                         set_holder(chat_id, user_id)
@@ -245,7 +239,6 @@ while True:
                             else:
                                 send(chat_id, "❌ Эстафета уже кому-то передана! Дождитесь, когда её примут")
                 
-                # --- !передать @Имя ---
                 elif text.startswith("!передать ") or text.startswith("!передаю "):
                     if get_holder(chat_id) != user_id:
                         send(chat_id, "❌ Эстафета не у вас!")
@@ -292,7 +285,6 @@ while True:
                     except Exception as e:
                         send(chat_id, f"❌ Ошибка: {str(e)}")
                 
-                # --- !уступить ---
                 elif text == "!уступить":
                     if get_holder(chat_id) != user_id:
                         send(chat_id, "❌ Эстафета не у вас!")
@@ -312,11 +304,9 @@ while True:
                                   f"📊 Штраф +1 (всего: {penalty})\n"
                                   f"🏃 Эстафета свободна! Напишите !принять")
                 
-                # --- !штрафы ---
                 elif text == "!штрафы":
                     send(chat_id, show_penalties(chat_id))
                 
-                # --- !статус ---
                 elif text == "!статус":
                     holder = get_holder(chat_id)
                     pending = get_pending(chat_id)
@@ -329,7 +319,6 @@ while True:
                     else:
                         send(chat_id, "🏃 Эстафета свободна! Напишите !принять")
                 
-                # --- !помощь ---
                 elif text == "!помощь":
                     help_text = f"""📖 ДОСТУПНЫЕ КОМАНДЫ:
 
@@ -350,7 +339,6 @@ while True:
 - Если 2 часа бездействия - сообщение @all"""
                     send(chat_id, help_text)
                 
-                # --- !очистить_штрафы ---
                 elif text.startswith("!очистить_штрафы"):
                     if not is_admin(user_id):
                         send(chat_id, "❌ Только админ может очищать штрафы!")
@@ -380,7 +368,6 @@ while True:
                         except Exception as e:
                             send(chat_id, f"❌ Ошибка: {str(e)}")
                 
-                # --- Любое сообщение обновляет активность ---
                 else:
                     if chat_key in chats:
                         chats[chat_key]['last_activity'] = datetime.now().isoformat()
