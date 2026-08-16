@@ -7,15 +7,21 @@ import json
 import os
 
 # ============================================
-#  НАСТРОЙКИ (ТВОИ ДАННЫЕ)
+#  НАСТРОЙКИ (БЕРЁМ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ BOTHOST)
 # ============================================
-GROUP_TOKEN = "vk1.a.tLPrx7XL95lpFV12NeHF3QuGuO9I80EWVg4-6qk8rQhzyFgPBsnR8unknHnPW6_1imhma3KcmL4sKFiYRQ9UaDs_qsziZbsP1dYS9UBlphjyQmaVL5TCOdS-q8-UR2M-4ToDEWyNUSIrAbAjq1Ee4ZLp0KslSpmTBitKrF8JaZnPFksCVy0KYHJENpTpc_hJ4Hg5BYw-ErSxNE1pzn0H4A"
-GROUP_ID = 240887444
-ADMINS = [479753606]
+GROUP_TOKEN = os.getenv('API_TOKEN')
+GROUP_ID = os.getenv('VK_GROUP_ID')
+
+if not GROUP_TOKEN:
+    print("ОШИБКА: Не найден токен API_TOKEN в переменных окружения!")
+    print("Проверьте настройки бота -> вкладка Переменные")
+    exit()
+
+ADMINS = [479753606]  # Твой ID (можешь добавить другие через запятую)
 
 # Время в минутах
-TIME_TO_ACCEPT = 60
-TIME_TO_IDLE = 120
+TIME_TO_ACCEPT = 60  # Время на принятие эстафеты
+TIME_TO_IDLE = 120   # Время бездействия (2 часа)
 
 # ============================================
 #  ХРАНИЛИЩЕ
@@ -54,6 +60,7 @@ def send(chat_id, text):
         print(f"Ошибка отправки: {e}")
 
 def send_mention_all(chat_id, text):
+    """Отправляет сообщение с упоминанием всех участников"""
     try:
         members = vk.messages.getConversationMembers(peer_id=chat_id)
         mentions = []
@@ -77,12 +84,12 @@ def get_user_name(user_id):
 def init_chat(chat_id):
     if str(chat_id) not in chats:
         chats[str(chat_id)] = {
-            'holder': None,
-            'time': None,
-            'penalty': {},
-            'pending': None,
-            'pending_time': None,
-            'last_activity': None
+            'holder': None,           # ID текущего владельца
+            'time': None,             # Время последней передачи
+            'penalty': {},            # Штрафы
+            'pending': None,          # ID того, кому передали (ожидание)
+            'pending_time': None,     # Время ожидания
+            'last_activity': None     # Время последней активности
         }
         save_data(chats)
 
@@ -165,6 +172,7 @@ def timer_check():
         for chat_id_str, data in list(chats.items()):
             chat_id = int(chat_id_str)
             
+            # === 1. Проверка: не принял эстафету за 1 час ===
             if data['pending'] and data['pending_time']:
                 if now_timestamp - data['pending_time'] >= (TIME_TO_ACCEPT * 60):
                     user_id = data['pending']
@@ -180,6 +188,7 @@ def timer_check():
                                   f"📊 Штраф +1 (всего: {penalty})\n"
                                   f"🏃 Эстафета свободна! Напишите !принять")
             
+            # === 2. Проверка: 2 часа бездействия ===
             if data['last_activity']:
                 try:
                     last_time = datetime.fromisoformat(data['last_activity'])
@@ -222,6 +231,8 @@ while True:
                 
                 init_chat(chat_id)
                 chat_key = str(chat_id)
+                
+                # === КОМАНДЫ ===
                 
                 if text == "!принять":
                     if chats[chat_key]['pending'] == user_id:
