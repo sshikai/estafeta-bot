@@ -1,23 +1,10 @@
-import subprocess
-import sys
-import os
-
-# === АВТОМАТИЧЕСКАЯ УСТАНОВКА БИБЛИОТЕК ===
-def install_package(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package, "--quiet"])
-
-try:
-    import vk_api
-except ImportError:
-    print("⚠️ Устанавливаю vk-api...")
-    install_package("vk-api")
-    import vk_api
-
+import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 import threading
 import time
 from datetime import datetime
 import json
+import os
 
 # ============================================
 #  НАСТРОЙКИ (ТВОИ ДАННЫЕ)
