@@ -6,23 +6,18 @@ import time
 from datetime import datetime
 import json
 
-
-
-print("🚀 Бот запускается...")
-
 # ============================================
 #  НАСТРОЙКИ
 # ============================================
 GROUP_TOKEN = "vk1.a.7VEgieZpdVqUHjSeQUqMDq_wFWWChk8AFkfg_zXNj2LOLBcdMD4oXKq-x2xZHkynyxye8N2MElbbwwZHxMt8ncxgU6wEvPyyR2hBqE4KvPEx_2ephg7_Xta649zJa0KKL2vO59WhS39iX4gOKQ2waTlOHR7ZQuUPZ0gshCIVTsWKtFLgfR9s3xQArH7xT0HZf0yogO3J2uJ0CDcEpsyMCw"
 GROUP_ID = 240887444
-
 ADMINS = [479753606]
 TIME_TO_ACCEPT = 60
 TIME_TO_IDLE = 120
 DATA_FILE = "estafeta_data.json"
 
 # ============================================
-#  ХРАНИЛИЩЕ
+#  ХРАНИЛИЩЕ ДАННЫХ
 # ============================================
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -40,22 +35,19 @@ def save_data(data):
 chats = load_data()
 
 # ============================================
-#  VK (ПОДКЛЮЧЕНИЕ)
+#  ПОДКЛЮЧЕНИЕ К ВК
 # ============================================
 try:
-    vk_session = vk_api.VkApi(token=GROUP_TOKEN, api_version='5.199')
+    vk_session = vk_api.VkApi(token=GROUP_TOKEN)
     vk = vk_session.get_api()
     longpoll = VkBotLongPoll(vk_session, GROUP_ID)
-    print("✅ Подключение к VK успешно! Бот готов.")
-except vk_api.exceptions.ApiError as e:
-    print(f"❌ Ошибка токена/прав ВК: {e}")
-    exit()
+    print("✅ Бот успешно подключился к ВК!")
 except Exception as e:
-    print(f"❌ Ошибка подключения: {e}")
+    print(f"❌ Ошибка подключения к ВК: {e}")
     exit()
 
 # ============================================
-#  ФУНКЦИИ
+#  ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ============================================
 def send(chat_id, text):
     try:
@@ -87,7 +79,12 @@ def get_user_name(user_id):
 def init_chat(chat_id):
     if str(chat_id) not in chats:
         chats[str(chat_id)] = {
-            'holder': None, 'time': None, 'penalty': {}, 'pending': None, 'pending_time': None, 'last_activity': None
+            'holder': None,
+            'time': None,
+            'penalty': {},
+            'pending': None,
+            'pending_time': None,
+            'last_activity': None
         }
         save_data(chats)
 
@@ -159,7 +156,7 @@ def is_admin(user_id):
     return user_id in ADMINS
 
 # ============================================
-#  ТАЙМЕР
+#  ТАЙМЕР ДЛЯ ФОНОВЫХ ЗАДАЧ
 # ============================================
 def timer_check():
     while True:
@@ -254,10 +251,7 @@ while True:
                             set_pending(chat_id, user_id, found)
                             send(chat_id, f"📤 {get_user_name(user_id)} ПЕРЕДАЁТ ЭСТАФЕТУ {get_user_name(found)}!\n⏰ У {get_user_name(found)} есть {TIME_TO_ACCEPT} минут, чтобы написать !принять")
                             try:
-                                vk.messages.send(
-                                    user_id=found,
-                                    message=f"🏃 Вам передают эстафету в беседе!\nНапишите !принять в чате, чтобы взять её.\n⏰ У вас есть {TIME_TO_ACCEPT} минут, иначе штраф!"
-                                )
+                                vk.messages.send(user_id=found, message=f"🏃 Вам передают эстафету в беседе!\nНапишите !принять в чате, чтобы взять её.\n⏰ У вас есть {TIME_TO_ACCEPT} минут, иначе штраф!")
                             except:
                                 pass
                         else:
