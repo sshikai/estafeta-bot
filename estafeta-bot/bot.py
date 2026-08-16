@@ -9,8 +9,8 @@ import os
 # ============================================
 #  НАСТРОЙКИ (БЕРЁМ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ BOTHOST)
 # ============================================
-GROUP_TOKEN = os.getenv('API_TOKEN')
-GROUP_ID = os.getenv('VK_GROUP_ID')
+GROUP_TOKEN = os.getenv('vk1.a.tLPrx7XL95lpFV12NeHF3QuGuO9I80EWVg4-6qk8rQhzyFgPBsnR8unknHnPW6_1imhma3KcmL4sKFiYRQ9UaDs_qsziZbsP1dYS9UBlphjyQmaVL5TCOdS-q8-UR2M-4ToDEWyNUSIrAbAjq1Ee4ZLp0KslSpmTBitKrF8JaZnPFksCVy0KYHJENpTpc_hJ4Hg5BYw-ErSxNE1pzn0H4A')
+GROUP_ID = os.getenv('240887444')
 
 if not GROUP_TOKEN:
     print("ОШИБКА: Не найден токен API_TOKEN в переменных окружения!")
