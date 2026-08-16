@@ -1,5 +1,5 @@
-import os.system('pip install vk_api')
 import os
+os.system('pip install vk_api')
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 import threading
@@ -7,8 +7,7 @@ import time
 from datetime import datetime
 import json
 
-# --- ПЕРВАЯ СТРОКА ДЛЯ ПОДСТРАХОВКИ (можно удалить после первого запуска) ---
-os.system('pip install vk_api')
+
 
 print("🚀 Бот запускается...")
 
